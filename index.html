@@ -12,11 +12,16 @@
   <style>
     html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
     .a4 { width: 210mm; min-height: 297mm; }
-    @media print { .no-print { display: none !important; } body { background: white; } #previewWrap { box-shadow: none !important; } }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white; }
+      #previewWrap { box-shadow: none !important; }
+    }
     .tpl-minimal .name { letter-spacing: .2px; }
     .tpl-modern .name { letter-spacing: .4px; }
     .tpl-bold .name { letter-spacing: .6px; text-transform: uppercase; }
     .photo { object-fit: cover; }
+    .icon-btn { border: 1px solid rgba(0,0,0,.08); border-radius: .6rem; padding: .25rem .5rem; font-size: .75rem; }
   </style>
   <!-- Export libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -70,6 +75,15 @@
             <input id="photoInput" type="file" accept="image/*" class="text-sm" />
             <button id="btnRemovePhoto" class="px-2 py-1 text-sm rounded-lg border hover:bg-zinc-50">Remove</button>
           </div>
+        </div>
+
+        <!-- Visibility toggles -->
+        <div class="flex flex-wrap gap-3">
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visSummary" type="checkbox" class="accent-black"> Summary</label>
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visSkills" type="checkbox" class="accent-black"> Skills</label>
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visExperience" type="checkbox" class="accent-black"> Experience</label>
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visEducation" type="checkbox" class="accent-black"> Education</label>
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visProjects" type="checkbox" class="accent-black"> Projects</label>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -133,7 +147,32 @@
           </div>
         </div>
 
-        <!-- (Editor-side lists can be added later) -->
+        <!-- Experience Editor -->
+        <div class="mt-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Experience</h3>
+            <button id="addExp" class="px-2 py-1 text-sm rounded-lg border hover:bg-zinc-50">+ Add</button>
+          </div>
+          <div id="expList" class="mt-2 flex flex-col gap-3"></div>
+        </div>
+
+        <!-- Education Editor -->
+        <div class="mt-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Education</h3>
+            <button id="addEdu" class="px-2 py-1 text-sm rounded-lg border hover:bg-zinc-50">+ Add</button>
+          </div>
+          <div id="eduList" class="mt-2 flex flex-col gap-3"></div>
+        </div>
+
+        <!-- Projects Editor -->
+        <div class="mt-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Projects</h3>
+            <button id="addProj" class="px-2 py-1 text-sm rounded-lg border hover:bg-zinc-50">+ Add</button>
+          </div>
+          <div id="projList" class="mt-2 flex flex-col gap-3"></div>
+        </div>
       </div>
     </section>
 
@@ -154,6 +193,49 @@
     </section>
   </main>
 
+  <!-- Templates for editors -->
+  <template id="expItemTpl">
+    <div class="grid grid-cols-2 gap-3 border rounded-xl p-3">
+      <input data-field="role" class="border rounded-lg px-3 py-2" placeholder="Role (e.g., Product Manager)" />
+      <input data-field="company" class="border rounded-lg px-3 py-2" placeholder="Company" />
+      <input data-field="start" class="border rounded-lg px-3 py-2" placeholder="Start (e.g., 2023)" />
+      <input data-field="end" class="border rounded-lg px-3 py-2" placeholder="End (e.g., Present)" />
+      <textarea data-field="desc" class="col-span-2 border rounded-lg px-3 py-2" rows="2" placeholder="Key achievements (one per line)"></textarea>
+      <div class="col-span-2 flex items-center justify-end gap-2">
+        <button class="moveUp icon-btn">↑</button>
+        <button class="moveDown icon-btn">↓</button>
+        <button class="remove text-sm text-red-600 hover:underline">Remove</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="eduItemTpl">
+    <div class="grid grid-cols-2 gap-3 border rounded-xl p-3">
+      <input data-field="school" class="border rounded-lg px-3 py-2" placeholder="School" />
+      <input data-field="degree" class="border rounded-lg px-3 py-2" placeholder="Degree" />
+      <input data-field="year" class="border rounded-lg px-3 py-2" placeholder="Year(s)" />
+      <input data-field="location" class="border rounded-lg px-3 py-2" placeholder="Location (optional)" />
+      <div class="col-span-2 flex items-center justify-end gap-2">
+        <button class="moveUp icon-btn">↑</button>
+        <button class="moveDown icon-btn">↓</button>
+        <button class="remove text-sm text-red-600 hover:underline">Remove</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="projItemTpl">
+    <div class="grid grid-cols-2 gap-3 border rounded-xl p-3">
+      <input data-field="name" class="border rounded-lg px-3 py-2" placeholder="Project name" />
+      <input data-field="link" class="border rounded-lg px-3 py-2" placeholder="Link (optional)" />
+      <textarea data-field="desc" class="col-span-2 border rounded-lg px-3 py-2" rows="2" placeholder="What it is / your role"></textarea>
+      <div class="col-span-2 flex items-center justify-end gap-2">
+        <button class="moveUp icon-btn">↑</button>
+        <button class="moveDown icon-btn">↓</button>
+        <button class="remove text-sm text-red-600 hover:underline">Remove</button>
+      </div>
+    </div>
+  </template>
+
   <script>
     const $ = (sel, root=document) => root.querySelector(sel);
 
@@ -165,7 +247,13 @@
       skills: $('#skills'),
       cv: $('#cv'),
       photoInput: $('#photoInput'), btnRemovePhoto: $('#btnRemovePhoto'),
-      photoSize: $('#photoSize'), photoShape: $('#photoShape'), photoBorder: $('#photoBorder')
+      photoSize: $('#photoSize'), photoShape: $('#photoShape'), photoBorder: $('#photoBorder'),
+      // visibility
+      visSummary: $('#visSummary'), visSkills: $('#visSkills'), visExperience: $('#visExperience'), visEducation: $('#visEducation'), visProjects: $('#visProjects'),
+      // editors
+      expList: $('#expList'), addExp: $('#addExp'),
+      eduList: $('#eduList'), addEdu: $('#addEdu'),
+      projList: $('#projList'), addProj: $('#addProj')
     };
 
     const defaultData = {
@@ -180,7 +268,8 @@
       education: [],
       projects: [],
       profilePhoto: null, photoSize: 96, photoShape: 'rounded-xl', photoBorder: false,
-      adsConsent: null
+      adsConsent: null,
+      show: { summary: true, skills: true, experience: true, education: true, projects: true }
     };
 
     const demoData = {
@@ -198,7 +287,8 @@
       education: [ { school: 'University of Bucharest', degree: 'BSc, Computer Science', year: '2019', location: 'Bucharest' } ],
       projects: [ { name: 'Roadmaply', link: 'roadmap.ly', desc: 'Lightweight public roadmap tool adopted by 50+ startups.' } ],
       profilePhoto: null, photoSize: 96, photoShape: 'rounded-xl', photoBorder: false,
-      adsConsent: null
+      adsConsent: null,
+      show: { summary: true, skills: true, experience: true, education: true, projects: true }
     };
 
     // Merge saved data safely with defaults
@@ -213,10 +303,13 @@
       if(typeof out.photoShape === 'undefined') out.photoShape = 'rounded-xl';
       if(typeof out.photoBorder === 'undefined') out.photoBorder = false;
       if(typeof out.adsConsent === 'undefined') out.adsConsent = null;
+      if(typeof out.show === 'undefined') out.show = { ...defaults.show };
+      else out.show = { ...defaults.show, ...out.show };
       return out;
     }
     let data = mergeData(defaultData, saved);
 
+    // ---------- Editor Rendering ----------
     function renderEditor() {
       els.template.value = data.template;
       els.accent.value = data.accent;
@@ -226,19 +319,142 @@
       els.photoSize.value = data.photoSize;
       els.photoShape.value = data.photoShape;
       els.photoBorder.checked = data.photoBorder;
+      // checkboxes
+      els.visSummary.checked = !!data.show.summary;
+      els.visSkills.checked = !!data.show.skills;
+      els.visExperience.checked = !!data.show.experience;
+      els.visEducation.checked = !!data.show.education;
+      els.visProjects.checked = !!data.show.projects;
+
+      renderExperienceEditor();
+      renderEducationEditor();
+      renderProjectsEditor();
       showConsentIfNeeded();
     }
 
+    // Helper to create move/remove handlers
+    function bindCommonRowControls(container, arrRef, idx, onChange) {
+      const row = container.lastElementChild;
+      const btnUp = row.querySelector('.moveUp');
+      const btnDown = row.querySelector('.moveDown');
+      const btnRemove = row.querySelector('.remove');
+
+      btnUp?.addEventListener('click', () => {
+        if (idx === 0) return;
+        const a = arrRef[idx-1]; arrRef[idx-1] = arrRef[idx]; arrRef[idx] = a;
+        onChange();
+      });
+      btnDown?.addEventListener('click', () => {
+        if (idx >= arrRef.length-1) return;
+        const a = arrRef[idx+1]; arrRef[idx+1] = arrRef[idx]; arrRef[idx] = a;
+        onChange();
+      });
+      btnRemove?.addEventListener('click', () => {
+        arrRef.splice(idx, 1);
+        onChange();
+      });
+    }
+
+    // ----- Experience Editor -----
+    function renderExperienceEditor() {
+      els.expList.innerHTML = '';
+      (data.experience || []).forEach((e, idx) => {
+        const node = document.importNode(document.getElementById('expItemTpl').content, true);
+        const roleEl = node.querySelector('[data-field="role"]');
+        const companyEl = node.querySelector('[data-field="company"]');
+        const startEl = node.querySelector('[data-field="start"]');
+        const endEl = node.querySelector('[data-field="end"]');
+        const descEl = node.querySelector('[data-field="desc"]');
+
+        roleEl.value = e.role || '';
+        companyEl.value = e.company || '';
+        startEl.value = e.start || '';
+        endEl.value = e.end || '';
+        descEl.value = e.desc || '';
+
+        roleEl.addEventListener('input', () => { data.experience[idx].role = roleEl.value; render(); });
+        companyEl.addEventListener('input', () => { data.experience[idx].company = companyEl.value; render(); });
+        startEl.addEventListener('input', () => { data.experience[idx].start = startEl.value; render(); });
+        endEl.addEventListener('input', () => { data.experience[idx].end = endEl.value; render(); });
+        descEl.addEventListener('input', () => { data.experience[idx].desc = descEl.value; render(); });
+
+        els.expList.appendChild(node);
+        bindCommonRowControls(els.expList, data.experience, idx, () => { renderExperienceEditor(); render(); });
+      });
+    }
+    els.addExp.addEventListener('click', () => {
+      data.experience.push({ role: '', company: '', start: '', end: '', desc: '' });
+      renderExperienceEditor();
+      render();
+    });
+
+    // ----- Education Editor -----
+    function renderEducationEditor() {
+      els.eduList.innerHTML = '';
+      (data.education || []).forEach((ed, idx) => {
+        const node = document.importNode(document.getElementById('eduItemTpl').content, true);
+        const schoolEl = node.querySelector('[data-field="school"]');
+        const degreeEl = node.querySelector('[data-field="degree"]');
+        const yearEl = node.querySelector('[data-field="year"]');
+        const locationEl = node.querySelector('[data-field="location"]');
+
+        schoolEl.value = ed.school || '';
+        degreeEl.value = ed.degree || '';
+        yearEl.value = ed.year || '';
+        locationEl.value = ed.location || '';
+
+        schoolEl.addEventListener('input', () => { data.education[idx].school = schoolEl.value; render(); });
+        degreeEl.addEventListener('input', () => { data.education[idx].degree = degreeEl.value; render(); });
+        yearEl.addEventListener('input', () => { data.education[idx].year = yearEl.value; render(); });
+        locationEl.addEventListener('input', () => { data.education[idx].location = locationEl.value; render(); });
+
+        els.eduList.appendChild(node);
+        bindCommonRowControls(els.eduList, data.education, idx, () => { renderEducationEditor(); render(); });
+      });
+    }
+    els.addEdu.addEventListener('click', () => {
+      data.education.push({ school: '', degree: '', year: '', location: '' });
+      renderEducationEditor();
+      render();
+    });
+
+    // ----- Projects Editor -----
+    function renderProjectsEditor() {
+      els.projList.innerHTML = '';
+      (data.projects || []).forEach((p, idx) => {
+        const node = document.importNode(document.getElementById('projItemTpl').content, true);
+        const nameEl = node.querySelector('[data-field="name"]');
+        const linkEl = node.querySelector('[data-field="link"]');
+        const descEl = node.querySelector('[data-field="desc"]');
+
+        nameEl.value = p.name || '';
+        linkEl.value = p.link || '';
+        descEl.value = p.desc || '';
+
+        nameEl.addEventListener('input', () => { data.projects[idx].name = nameEl.value; render(); });
+        linkEl.addEventListener('input', () => { data.projects[idx].link = linkEl.value; render(); });
+        descEl.addEventListener('input', () => { data.projects[idx].desc = descEl.value; render(); });
+
+        els.projList.appendChild(node);
+        bindCommonRowControls(els.projList, data.projects, idx, () => { renderProjectsEditor(); render(); });
+      });
+    }
+    els.addProj.addEventListener('click', () => {
+      data.projects.push({ name: '', link: '', desc: '' });
+      renderProjectsEditor();
+      render();
+    });
+
+    // ---------- Preview Rendering ----------
     function escapeHtml(str=''){ return str.replace(/[&<>\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\'':'&#39;'}[c])); }
     function bulletify(text=''){ return text.split('\n').filter(Boolean).map(t=>`<li>${escapeHtml(t.replace(/^•\s*/, ''))}</li>`).join(''); }
+    function sectionTitle(t, color){ return `<h3 class="text-sm font-semibold tracking-wide text-zinc-700" style="color:${color}">${escapeHtml(t)}</h3>`; }
 
-    function render() {
-      localStorage.setItem('cv-data', JSON.stringify(data));
-      const tplClass = { minimal: 'tpl-minimal', modern: 'tpl-modern', bold: 'tpl-bold' }[data.template] || 'tpl-minimal';
-      els.cv.className = tplClass;
-      const photoSize = data.photoSize || 96;
+    function renderContent(){
+      const headerPhotoSize = data.photoSize || 96;
       const photoBorderCls = data.photoBorder ? 'border-4' : '';
-      const photoEl = data.profilePhoto ? `<img src="${data.profilePhoto}" alt="Profile photo" class="photo ${data.photoShape} ${photoBorderCls}" style="width:${photoSize}px;height:${photoSize}px;border-color:${data.accent}"/>` : '';
+      const photoEl = data.profilePhoto ? `<img src="${data.profilePhoto}" alt="Profile photo" class="photo ${data.photoShape} ${photoBorderCls}" style="width:${headerPhotoSize}px;height:${headerPhotoSize}px;border-color:${data.accent}"/>` : '';
+
       const header = `
         <div class="flex items-center justify-between gap-6 border-b pb-4" style="border-color:${data.accent}33">
           <div class="flex items-center gap-4">
@@ -256,23 +472,23 @@
           </div>
         </div>`;
 
-      const summary = data.summary?.trim() ? `
+      const summary = data.show.summary && data.summary?.trim() ? `
         <section class="mt-4">
-          <h3 class="text-sm font-semibold tracking-wide text-zinc-700" style="color:${data.accent}">Summary</h3>
+          ${sectionTitle('Summary', data.accent)}
           <p class="text-sm leading-relaxed text-zinc-700 mt-1">${escapeHtml(data.summary)}</p>
         </section>` : '';
 
-      const skills = data.skills?.trim() ? `
+      const skills = data.show.skills && data.skills?.trim() ? `
         <section class="mt-4">
-          <h3 class="text-sm font-semibold tracking-wide text-zinc-700" style="color:${data.accent}">Skills</h3>
+          ${sectionTitle('Skills', data.accent)}
           <div class="mt-1 flex flex-wrap gap-2 text-xs">
             ${data.skills.split(',').map(s=>`<span class="px-2 py-1 rounded-full border" style="border-color:${data.accent}44">${escapeHtml(s.trim())}</span>`).join('')}
           </div>
         </section>` : '';
 
-      const experience = Array.isArray(data.experience)&&data.experience.length?`
+      const experience = data.show.experience && Array.isArray(data.experience)&&data.experience.length?`
         <section class="mt-4">
-          <h3 class="text-sm font-semibold tracking-wide text-zinc-700" style="color:${data.accent}">Experience</h3>
+          ${sectionTitle('Experience', data.accent)}
           <div class="mt-1 flex flex-col gap-3">
             ${data.experience.map(e=>`
               <div>
@@ -285,9 +501,9 @@
           </div>
         </section>`:'';
 
-      const education = Array.isArray(data.education)&&data.education.length?`
+      const education = data.show.education && Array.isArray(data.education)&&data.education.length?`
         <section class="mt-4">
-          <h3 class="text-sm font-semibold tracking-wide text-zinc-700" style="color:${data.accent}">Education</h3>
+          ${sectionTitle('Education', data.accent)}
           <div class="mt-1 flex flex-col gap-2">
             ${data.education.map(ed=>`
               <div class="text-sm">
@@ -297,9 +513,9 @@
           </div>
         </section>`:'';
 
-      const projects = Array.isArray(data.projects)&&data.projects.length?`
+      const projects = data.show.projects && Array.isArray(data.projects)&&data.projects.length?`
         <section class="mt-4">
-          <h3 class="text-sm font-semibold tracking-wide text-zinc-700" style="color:${data.accent}">Projects</h3>
+          ${sectionTitle('Projects', data.accent)}
           <div class="mt-1 flex flex-col gap-2">
             ${data.projects.map(p=>`
               <div class="text-sm">
@@ -310,17 +526,98 @@
           </div>
         </section>`:'';
 
-      els.cv.innerHTML = `${header}${summary}${skills}${experience}${education}${projects}`;
+      // Templates
+      if (data.template === 'bold') {
+        return `
+          <div class="grid grid-cols-3 gap-6 tpl-bold">
+            <aside class="col-span-1 pr-4 border-r" style="border-color:${data.accent}33">
+              ${data.profilePhoto ? `<div class="mb-3">${photoEl}</div>` : ''}
+              <div class="name text-xl font-extrabold" style="color:${data.accent}">${escapeHtml(data.name || '')}</div>
+              <div class="text-zinc-700 mb-3">${escapeHtml(data.title || '')}</div>
+              ${skills}
+              <section class="mt-4">
+                ${sectionTitle('Contact', data.accent)}
+                <div class="text-sm text-zinc-700 mt-1">
+                  <div>${escapeHtml(data.email || '')}</div>
+                  <div>${escapeHtml(data.phone || '')}</div>
+                  <div>${escapeHtml(data.location || '')}</div>
+                  <div>${escapeHtml(data.website || '')}</div>
+                </div>
+              </section>
+            </aside>
+            <main class="col-span-2">
+              ${summary}
+              ${experience}
+              ${education}
+              ${projects}
+            </main>
+          </div>`;
+      } else if (data.template === 'modern') {
+        return `
+          <div class="tpl-modern">
+            ${header}
+            <div class="grid grid-cols-3 gap-6 mt-4">
+              <div class="col-span-2">
+                ${summary}
+                ${experience}
+              </div>
+              <div class="col-span-1">
+                ${skills}
+                ${education}
+                ${projects}
+              </div>
+            </div>
+          </div>`;
+      }
+      // minimal
+      return `
+        <div class="tpl-minimal">
+          ${header}
+          ${summary}
+          ${skills}
+          ${experience}
+          ${education}
+          ${projects}
+        </div>`;
     }
+
+    function render() {
+      localStorage.setItem('cv-data', JSON.stringify(data));
+      els.cv.innerHTML = renderContent();
+      els.cv.className = {
+        minimal: 'tpl-minimal',
+        modern: 'tpl-modern',
+        bold: 'tpl-bold'
+      }[data.template] || 'tpl-minimal';
+    }
+
+    // ---- Bind inputs for live updates ----
+    els.template.addEventListener('change', () => { data.template = els.template.value; render(); });
+    els.accent.addEventListener('input', () => { data.accent = els.accent.value; render(); });
+    els.name.addEventListener('input', () => { data.name = els.name.value; render(); });
+    els.title.addEventListener('input', () => { data.title = els.title.value; render(); });
+    els.summary.addEventListener('input', () => { data.summary = els.summary.value; render(); });
+    els.email.addEventListener('input', () => { data.email = els.email.value; render(); });
+    els.phone.addEventListener('input', () => { data.phone = els.phone.value; render(); });
+    els.location.addEventListener('input', () => { data.location = els.location.value; render(); });
+    els.website.addEventListener('input', () => { data.website = els.website.value; render(); });
+    els.skills.addEventListener('input', () => { data.skills = els.skills.value; render(); });
+
+    // Visibility toggles
+    els.visSummary.addEventListener('change', () => { data.show.summary = els.visSummary.checked; render(); });
+    els.visSkills.addEventListener('change', () => { data.show.skills = els.visSkills.checked; render(); });
+    els.visExperience.addEventListener('change', () => { data.show.experience = els.visExperience.checked; render(); });
+    els.visEducation.addEventListener('change', () => { data.show.education = els.visEducation.checked; render(); });
+    els.visProjects.addEventListener('change', () => { data.show.projects = els.visProjects.checked; render(); });
 
     // Photo upload + controls
     function readFileAsDataURL(file) { return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file);}); }
     async function handlePhotoUpload(file){ if(!file)return; const dataUrl=await readFileAsDataURL(file); const img=new Image(); img.src=dataUrl; await img.decode(); const maxDim=512; const canvas=document.createElement('canvas'); const ratio=Math.min(maxDim/img.width,maxDim/img.height,1); canvas.width=Math.round(img.width*ratio); canvas.height=Math.round(img.height*ratio); canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height); data.profilePhoto=canvas.toDataURL('image/jpeg',0.9); render(); }
-    photoInput?.addEventListener('change',e=>handlePhotoUpload(e.target.files[0]));
-    btnRemovePhoto?.addEventListener('click',()=>{data.profilePhoto=null; render();});
-    photoSize?.addEventListener('input',()=>{data.photoSize=+photoSize.value; render();});
-    photoShape?.addEventListener('change',()=>{data.photoShape=photoShape.value; render();});
-    photoBorder?.addEventListener('change',()=>{data.photoBorder=photoBorder.checked; render();});
+    els.photoInput?.addEventListener('change',e=>handlePhotoUpload(e.target.files[0]));
+    els.btnRemovePhoto?.addEventListener('click',()=>{data.profilePhoto=null; render();});
+    els.photoSize?.addEventListener('input',()=>{data.photoSize=+els.photoSize.value; render();});
+    els.photoShape?.addEventListener('change',()=>{data.photoShape=els.photoShape.value; render();});
+    els.photoBorder?.addEventListener('change',()=>{data.photoBorder=els.photoBorder.checked; render();});
 
     // Ads Consent / Loading
     function showConsentIfNeeded(){
@@ -329,11 +626,13 @@
       else { bar.classList.add('hidden'); if(data.adsConsent==='accepted') loadAds(); }
     }
     function loadAds(){
-      if(window.__adsLoaded) return; window.__adsLoaded = true;
-      const s=document.createElement('script'); s.async=true;
-      s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX';
-      s.crossOrigin='anonymous'; document.head.appendChild(s);
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
+      try{
+        if(window.__adsLoaded) return; window.__adsLoaded = true;
+        const s=document.createElement('script'); s.async=true;
+        s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX';
+        s.crossOrigin='anonymous'; document.head.appendChild(s);
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      }catch(_){} // ignore CSP/adblock errors in sandbox
     }
     document.getElementById('btnAcceptAds')?.addEventListener('click',()=>{ data.adsConsent='accepted'; localStorage.setItem('cv-data', JSON.stringify(data)); document.getElementById('consentBar').classList.add('hidden'); loadAds(); });
     document.getElementById('btnDeclineAds')?.addEventListener('click',()=>{ data.adsConsent='declined'; localStorage.setItem('cv-data', JSON.stringify(data)); document.getElementById('consentBar').classList.add('hidden'); });
@@ -355,7 +654,7 @@
     });
     document.getElementById('btnNew').addEventListener('click',()=>{
       if(!confirm('Start a new blank CV? Current editor will be cleared.')) return;
-      data = { template:'minimal', accent:'#2563EB', name:'', title:'', summary:'', email:'', phone:'', location:'', website:'', skills:'', experience:[], education:[], projects:[], profilePhoto:null, photoSize:96, photoShape:'rounded-xl', photoBorder:false, adsConsent:data.adsConsent };
+      data = { template:'minimal', accent:'#2563EB', name:'', title:'', summary:'', email:'', phone:'', location:'', website:'', skills:'', experience:[], education:[], projects:[], profilePhoto:null, photoSize:96, photoShape:'rounded-xl', photoBorder:false, adsConsent:data.adsConsent, show:{ summary:true, skills:true, experience:true, education:true, projects:true } };
       renderEditor(); render();
     });
     document.getElementById('btnDemo').addEventListener('click',()=>{
