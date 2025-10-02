@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CV Builder – Fast, Free, No Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="description" content="Simple, privacy-first CV/Resume builder. Edit on the left, preview on the right, export to PDF. No sign-in required." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    .a4 { width: 210mm; min-height: 297mm; }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white; }
+      #previewWrap { box-shadow: none !important; }
+    }
+    .tpl-minimal .name { letter-spacing: .2px; }
+    .tpl-modern .name { letter-spacing: .4px; }
+    .tpl-bold .name { letter-spacing: .6px; text-transform: uppercase; }
+    .photo { object-fit: cover; }
+    .icon-btn { border: 1px solid rgba(0,0,0,.08); border-radius: .6rem; padding: .25rem .5rem; font-size: .75rem; }
+  </style>
+  <!-- Export libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-zinc-50">
+  <!-- Consent banner -->
+  <div id="consentBar" class="no-print fixed bottom-0 inset-x-0 z-50 hidden">
+    <div class="max-w-5xl mx-auto mb-4 px-4 py-3 rounded-2xl shadow-lg border border-zinc-200 bg-white/95 backdrop-blur">
+      <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <p class="text-sm text-zinc-700 flex-1">We use advertising to keep this tool free. Cookies may be used to personalize and measure ads.</p>
+        <div class="flex gap-2">
+          <button id="btnDeclineAds" class="px-3 py-2 rounded-xl border text-sm">Decline</button>
+          <button id="btnAcceptAds" class="px-3 py-2 rounded-xl bg-black text-white text-sm">Accept</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Bar -->
+  <header class="no-print sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-zinc-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="text-xl font-bold">CV Builder</div>
+      <span class="text-zinc-400">·</span>
+      <div class="text-sm text-zinc-600">Privacy-first. Everything stays in your browser.</div>
+      <div class="ml-auto flex gap-2">
+        <button id="btnNew" class="px-3 py-1.5 rounded-xl border text-sm hover:bg-zinc-50">New</button>
+        <button id="btnDemo" class="px-3 py-1.5 rounded-xl border text-sm hover:bg-zinc-50">Load Demo</button>
+        <button id="btnSave" class="px-3 py-1.5 rounded-xl border text-sm hover:bg-zinc-50">Save</button>
+        <button id="btnLoad" class="px-3 py-1.5 rounded-xl border text-sm hover:bg-zinc-50">Load</button>
+        <button id="btnExport" class="px-3 py-1.5 rounded-xl bg-black text-white text-sm hover:bg-zinc-800">Export PDF</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Left: Editor -->
+    <section class="no-print bg-white rounded-2xl shadow-sm border border-zinc-200 p-4 lg:h-[calc(100vh-110px)] overflow-auto">
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center gap-3 flex-wrap">
+          <label class="text-sm text-zinc-600">Template</label>
+          <select id="template" class="border rounded-xl px-3 py-2 text-sm">
+            <option value="minimal">Minimal</option>
+            <option value="modern">Modern</option>
+            <option value="bold">Bold Sidebar</option>
+          </select>
+          <label class="ml-4 text-sm text-zinc-600">Accent</label>
+          <input id="accent" type="color" class="w-9 h-9 p-0 border rounded" value="#2563EB" />
+          <div class="ml-auto flex items-center gap-2">
+            <label class="text-sm text-zinc-600">Profile photo</label>
+            <input id="photoInput" type="file" accept="image/*" class="text-sm" />
+            <button id="btnRemovePhoto" class="px-2 py-1 text-sm rounded-lg border hover:bg-zinc-50">Remove</button>
+          </div>
+        </div>
+
+        <!-- Visibility toggles -->
+        <div class="flex flex-wrap gap-3">
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visSummary" type="checkbox" class="accent-black"> Summary</label>
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visSkills" type="checkbox" class="accent-black"> Skills</label>
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visExperience" type="checkbox" class="accent-black"> Experience</label>
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visEducation" type="checkbox" class="accent-black"> Education</label>
+          <label class="inline-flex items-center gap-2 text-sm text-zinc-700"><input id="visProjects" type="checkbox" class="accent-black"> Projects</label>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-zinc-500">Name</label>
+            <input id="name" class="w-full border rounded-xl px-3 py-2" placeholder="Jane Doe" />
+          </div>
+          <div>
+            <label class="text-xs text-zinc-500">Professional Title</label>
+            <input id="title" class="w-full border rounded-xl px-3 py-2" placeholder="Product Manager" />
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs text-zinc-500">Summary</label>
+          <textarea id="summary" class="w-full border rounded-xl px-3 py-2" rows="3" placeholder="1–3 sentence professional summary"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-zinc-500">Email</label>
+            <input id="email" class="w-full border rounded-xl px-3 py-2" placeholder="jane@doe.com" />
+          </div>
+          <div>
+            <label class="text-xs text-zinc-500">Phone</label>
+            <input id="phone" class="w-full border rounded-xl px-3 py-2" placeholder="+40 712 345 678" />
+          </div>
+          <div>
+            <label class="text-xs text-zinc-500">Location</label>
+            <input id="location" class="w-full border rounded-xl px-3 py-2" placeholder="Bucharest, RO" />
+          </div>
+          <div>
+            <label class="text-xs text-zinc-500">Website / LinkedIn</label>
+            <input id="website" class="w-full border rounded-xl px-3 py-2" placeholder="linkedin.com/in/janedoe" />
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs text-zinc-500">Skills (comma separated)</label>
+          <input id="skills" class="w-full border rounded-xl px-3 py-2" placeholder="React, Product Strategy, A/B Testing" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 items-end">
+          <div></div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-xs text-zinc-500">Photo size</label>
+              <input id="photoSize" type="range" min="64" max="140" step="4" value="96" class="w-full" />
+            </div>
+            <div>
+              <label class="text-xs text-zinc-500">Shape</label>
+              <select id="photoShape" class="w-full border rounded-xl px-2 py-1 text-sm">
+                <option value="rounded-xl">Rounded</option>
+                <option value="rounded-full">Circle</option>
+                <option value="rounded-none">Square</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <label class="inline-flex items-center gap-2 text-sm text-zinc-600"><input id="photoBorder" type="checkbox" class="accent-black" /> Border</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Experience Editor -->
+        <div class="mt-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Experience</h3>
+            <button id="addExp" class="px-2 py-1 text-sm rounded-lg border hover:bg-zinc-50">+ Add</button>
+          </div>
+          <div id="expList" class="mt-2 flex flex-col gap-3"></div>
+        </div>
+
+        <!-- Education Editor -->
+        <div class="mt-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Education</h3>
+            <button id="addEdu" class="px-2 py-1 text-sm rounded-lg border hover:bg-zinc-50">+ Add</button>
+          </div>
+          <div id="eduList" class="mt-2 flex flex-col gap-3"></div>
+        </div>
+
+        <!-- Projects Editor -->
+        <div class="mt-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Projects</h3>
+            <button id="addProj" class="px-2 py-1 text-sm rounded-lg border hover:bg-zinc-50">+ Add</button>
+          </div>
+          <div id="projList" class="mt-2 flex flex-col gap-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Preview + Ads -->
+    <section class="lg:h-[calc(100vh-110px)] overflow-auto">
+      <!-- Ad (top) -->
+      <div class="no-print mb-4">
+        <ins class="adsbygoogle block w-full" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="1111111111" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      </div>
+      <div id="previewWrap" class="a4 mx-auto bg-white rounded-xl shadow-xl border border-zinc-200 p-8">
+        <div id="cv" class="tpl-minimal"></div>
+      </div>
+      <!-- Ad (bottom) -->
+      <div class="no-print mt-4">
+        <ins class="adsbygoogle block w-full" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="2222222222" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      </div>
+      <p class="no-print text-center text-xs text-zinc-500 mt-3">Tip: Use “Export PDF” for a clean print-ready CV. Ads are not included.</p>
+    </section>
+  </main>
+
+  <!-- Templates for editors -->
+  <template id="expItemTpl">
+    <div class="grid grid-cols-2 gap-3 border rounded-xl p-3">
+      <input data-field="role" class="border rounded-lg px-3 py-2" placeholder="Role (e.g., Product Manager)" />
+      <input data-field="company" class="border rounded-lg px-3 py-2" placeholder="Company" />
+      <input data-field="start" class="border rounded-lg px-3 py-2" placeholder="Start (e.g., 2023)" />
+      <input data-field="end" class="border rounded-lg px-3 py-2" placeholder="End (e.g., Present)" />
+      <textarea data-field="desc" class="col-span-2 border rounded-lg px-3 py-2" rows="2" placeholder="Key achievements (one per line)"></textarea>
+      <div class="col-span-2 flex items-center justify-end gap-2">
+        <button class="moveUp icon-btn">↑</button>
+        <button class="moveDown icon-btn">↓</button>
+        <button class="remove text-sm text-red-600 hover:underline">Remove</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="eduItemTpl">
+    <div class="grid grid-cols-2 gap-3 border rounded-xl p-3">
+      <input data-field="school" class="border rounded-lg px-3 py-2" placeholder="School" />
+      <input data-field="degree" class="border rounded-lg px-3 py-2" placeholder="Degree" />
+      <input data-field="year" class="border rounded-lg px-3 py-2" placeholder="Year(s)" />
+      <input data-field="location" class="border rounded-lg px-3 py-2" placeholder="Location (optional)" />
+      <div class="col-span-2 flex items-center justify-end gap-2">
+        <button class="moveUp icon-btn">↑</button>
+        <button class="moveDown icon-btn">↓</button>
+        <button class="remove text-sm text-red-600 hover:underline">Remove</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="projItemTpl">
+    <div class="grid grid-cols-2 gap-3 border rounded-xl p-3">
+      <input data-field="name" class="border rounded-lg px-3 py-2" placeholder="Project name" />
+      <input data-field="link" class="border rounded-lg px-3 py-2" placeholder="Link (optional)" />
+      <textarea data-field="desc" class="col-span-2 border rounded-lg px-3 py-2" rows="2" placeholder="What it is / your role"></textarea>
+      <div class="col-span-2 flex items-center justify-end gap-2">
+        <button class="moveUp icon-btn">↑</button>
+        <button class="moveDown icon-btn">↓</button>
+        <button class="remove text-sm text-red-600 hover:underline">Remove</button>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    const $ = (sel, root=document) => root.querySelector(sel);
+
+    const els = {
+      template: $('#template'),
+      accent: $('#accent'),
+      name: $('#name'), title: $('#title'), summary: $('#summary'),
+      email: $('#email'), phone: $('#phone'), location: $('#location'), website: $('#website'),
+      skills: $('#skills'),
+      cv: $('#cv'),
+      photoInput: $('#photoInput'), btnRemovePhoto: $('#btnRemovePhoto'),
+      photoSize: $('#photoSize'), photoShape: $('#photoShape'), photoBorder: $('#photoBorder'),
+      // visibility
+      visSummary: $('#visSummary'), visSkills: $('#visSkills'), visExperience: $('#visExperience'), visEducation: $('#visEducation'), visProjects: $('#visProjects'),
+      // editors
+      expList: $('#expList'), addExp: $('#addExp'),
+      eduList: $('#eduList'), addEdu: $('#addEdu'),
+      projList: $('#projList'), addProj: $('#addProj')
+    };
+
+    const defaultData = {
+      template: 'minimal',
+      accent: '#2563EB',
+      name: 'Jane Doe', title: 'Product Manager',
+      summary: 'Product manager with 5+ years scaling B2C apps. Led cross-functional teams, shipped data-informed features, and improved activation +25%.',
+      email: 'jane@doe.com', phone: '+40 712 345 678',
+      location: 'Bucharest, RO', website: 'linkedin.com/in/janedoe',
+      skills: 'Product Strategy, Roadmapping, User Research, A/B Testing, SQL, Analytics',
+      experience: [],
+      education: [],
+      projects: [],
+      profilePhoto: null, photoSize: 96, photoShape: 'rounded-xl', photoBorder: false,
+      adsConsent: null,
+      show: { summary: true, skills: true, experience: true, education: true, projects: true }
+    };
+
+    const demoData = {
+      template: 'modern',
+      accent: '#2563EB',
+      name: 'Jane Doe', title: 'Senior Product Manager',
+      summary: 'PM with 5+ years building B2C apps. Led cross-functional pods, shipped data-informed features, and improved activation +25%.',
+      email: 'jane@doe.com', phone: '+40 712 345 678',
+      location: 'Bucharest, RO', website: 'linkedin.com/in/janedoe',
+      skills: 'Product Strategy, Roadmapping, User Research, Experimentation, SQL, Analytics, Stakeholder Management',
+      experience: [
+        { role: 'Senior Product Manager', company: 'Acme App', start: '2023', end: 'Present', desc: '• Own activation funnel (signup → first value)\n• Ran 12 experiments; improved Day-1 retention +9%\n• Built discovery engine with ML team' },
+        { role: 'Product Manager', company: 'Beta Corp', start: '2020', end: '2023', desc: '• Led mobile growth; +140k MAU\n• Launched referral program; +8% virality' }
+      ],
+      education: [ { school: 'University of Bucharest', degree: 'BSc, Computer Science', year: '2019', location: 'Bucharest' } ],
+      projects: [ { name: 'Roadmaply', link: 'roadmap.ly', desc: 'Lightweight public roadmap tool adopted by 50+ startups.' } ],
+      profilePhoto: null, photoSize: 96, photoShape: 'rounded-xl', photoBorder: false,
+      adsConsent: null,
+      show: { summary: true, skills: true, experience: true, education: true, projects: true }
+    };
+
+    // Merge saved data safely with defaults
+    const savedRaw = localStorage.getItem('cv-data');
+    let saved = null; try { saved = savedRaw ? JSON.parse(savedRaw) : null; } catch(_) { saved = null; }
+    function mergeData(defaults, sv){
+      if(!sv) return JSON.parse(JSON.stringify(defaults));
+      const out = { ...defaults, ...sv };
+      ['experience','education','projects'].forEach(k=>{ out[k] = Array.isArray(sv[k]) ? sv[k] : (defaults[k]||[]); });
+      if(typeof out.profilePhoto === 'undefined') out.profilePhoto = null;
+      if(typeof out.photoSize === 'undefined') out.photoSize = 96;
+      if(typeof out.photoShape === 'undefined') out.photoShape = 'rounded-xl';
+      if(typeof out.photoBorder === 'undefined') out.photoBorder = false;
+      if(typeof out.adsConsent === 'undefined') out.adsConsent = null;
+      if(typeof out.show === 'undefined') out.show = { ...defaults.show };
+      else out.show = { ...defaults.show, ...out.show };
+      return out;
+    }
+    let data = mergeData(defaultData, saved);
+
+    // ---------- Editor Rendering ----------
+    function renderEditor() {
+      els.template.value = data.template;
+      els.accent.value = data.accent;
+      els.name.value = data.name; els.title.value = data.title; els.summary.value = data.summary;
+      els.email.value = data.email; els.phone.value = data.phone; els.location.value = data.location; els.website.value = data.website;
+      els.skills.value = data.skills;
+      els.photoSize.value = data.photoSize;
+      els.photoShape.value = data.photoShape;
+      els.photoBorder.checked = data.photoBorder;
+      // checkboxes
+      els.visSummary.checked = !!data.show.summary;
+      els.visSkills.checked = !!data.show.skills;
+      els.visExperience.checked = !!data.show.experience;
+      els.visEducation.checked = !!data.show.education;
+      els.visProjects.checked = !!data.show.projects;
+
+      renderExperienceEditor();
+      renderEducationEditor();
+      renderProjectsEditor();
+      showConsentIfNeeded();
+    }
+
+    // Helper to create move/remove handlers
+    function bindCommonRowControls(container, arrRef, idx, onChange) {
+      const row = container.lastElementChild;
+      const btnUp = row.querySelector('.moveUp');
+      const btnDown = row.querySelector('.moveDown');
+      const btnRemove = row.querySelector('.remove');
+
+      btnUp?.addEventListener('click', () => {
+        if (idx === 0) return;
+        const a = arrRef[idx-1]; arrRef[idx-1] = arrRef[idx]; arrRef[idx] = a;
+        onChange();
+      });
+      btnDown?.addEventListener('click', () => {
+        if (idx >= arrRef.length-1) return;
+        const a = arrRef[idx+1]; arrRef[idx+1] = arrRef[idx]; arrRef[idx] = a;
+        onChange();
+      });
+      btnRemove?.addEventListener('click', () => {
+        arrRef.splice(idx, 1);
+        onChange();
+      });
+    }
+
+    // ----- Experience Editor -----
+    function renderExperienceEditor() {
+      els.expList.innerHTML = '';
+      (data.experience || []).forEach((e, idx) => {
+        const node = document.importNode(document.getElementById('expItemTpl').content, true);
+        const roleEl = node.querySelector('[data-field="role"]');
+        const companyEl = node.querySelector('[data-field="company"]');
+        const startEl = node.querySelector('[data-field="start"]');
+        const endEl = node.querySelector('[data-field="end"]');
+        const descEl = node.querySelector('[data-field="desc"]');
+
+        roleEl.value = e.role || '';
+        companyEl.value = e.company || '';
+        startEl.value = e.start || '';
+        endEl.value = e.end || '';
+        descEl.value = e.desc || '';
+
+        roleEl.addEventListener('input', () => { data.experience[idx].role = roleEl.value; render(); });
+        companyEl.addEventListener('input', () => { data.experience[idx].company = companyEl.value; render(); });
+        startEl.addEventListener('input', () => { data.experience[idx].start = startEl.value; render(); });
+        endEl.addEventListener('input', () => { data.experience[idx].end = endEl.value; render(); });
+        descEl.addEventListener('input', () => { data.experience[idx].desc = descEl.value; render(); });
+
+        els.expList.appendChild(node);
+        bindCommonRowControls(els.expList, data.experience, idx, () => { renderExperienceEditor(); render(); });
+      });
+    }
+    els.addExp.addEventListener('click', () => {
+      data.experience.push({ role: '', company: '', start: '', end: '', desc: '' });
+      renderExperienceEditor();
+      render();
+    });
+
+    // ----- Education Editor -----
+    function renderEducationEditor() {
+      els.eduList.innerHTML = '';
+      (data.education || []).forEach((ed, idx) => {
+        const node = document.importNode(document.getElementById('eduItemTpl').content, true);
+        const schoolEl = node.querySelector('[data-field="school"]');
+        const degreeEl = node.querySelector('[data-field="degree"]');
+        const yearEl = node.querySelector('[data-field="year"]');
+        const locationEl = node.querySelector('[data-field="location"]');
+
+        schoolEl.value = ed.school || '';
+        degreeEl.value = ed.degree || '';
+        yearEl.value = ed.year || '';
+        locationEl.value = ed.location || '';
+
+        schoolEl.addEventListener('input', () => { data.education[idx].school = schoolEl.value; render(); });
+        degreeEl.addEventListener('input', () => { data.education[idx].degree = degreeEl.value; render(); });
+        yearEl.addEventListener('input', () => { data.education[idx].year = yearEl.value; render(); });
+        locationEl.addEventListener('input', () => { data.education[idx].location = locationEl.value; render(); });
+
+        els.eduList.appendChild(node);
+        bindCommonRowControls(els.eduList, data.education, idx, () => { renderEducationEditor(); render(); });
+      });
+    }
+    els.addEdu.addEventListener('click', () => {
+      data.education.push({ school: '', degree: '', year: '', location: '' });
+      renderEducationEditor();
+      render();
+    });
+
+    // ----- Projects Editor -----
+    function renderProjectsEditor() {
+      els.projList.innerHTML = '';
+      (data.projects || []).forEach((p, idx) => {
+        const node = document.importNode(document.getElementById('projItemTpl').content, true);
+        const nameEl = node.querySelector('[data-field="name"]');
+        const linkEl = node.querySelector('[data-field="link"]');
+        const descEl = node.querySelector('[data-field="desc"]');
+
+        nameEl.value = p.name || '';
+        linkEl.value = p.link || '';
+        descEl.value = p.desc || '';
+
+        nameEl.addEventListener('input', () => { data.projects[idx].name = nameEl.value; render(); });
+        linkEl.addEventListener('input', () => { data.projects[idx].link = linkEl.value; render(); });
+        descEl.addEventListener('input', () => { data.projects[idx].desc = descEl.value; render(); });
+
+        els.projList.appendChild(node);
+        bindCommonRowControls(els.projList, data.projects, idx, () => { renderProjectsEditor(); render(); });
+      });
+    }
+    els.addProj.addEventListener('click', () => {
+      data.projects.push({ name: '', link: '', desc: '' });
+      renderProjectsEditor();
+      render();
+    });
+
+    // ---------- Preview Rendering ----------
+    function escapeHtml(str=''){ return str.replace(/[&<>\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\'':'&#39;'}[c])); }
+    function bulletify(text=''){ return text.split('\n').filter(Boolean).map(t=>`<li>${escapeHtml(t.replace(/^•\s*/, ''))}</li>`).join(''); }
+    function sectionTitle(t, color){ return `<h3 class="text-sm font-semibold tracking-wide text-zinc-700" style="color:${color}">${escapeHtml(t)}</h3>`; }
+
+    function renderContent(){
+      const headerPhotoSize = data.photoSize || 96;
+      const photoBorderCls = data.photoBorder ? 'border-4' : '';
+      const photoEl = data.profilePhoto ? `<img src="${data.profilePhoto}" alt="Profile photo" class="photo ${data.photoShape} ${photoBorderCls}" style="width:${headerPhotoSize}px;height:${headerPhotoSize}px;border-color:${data.accent}"/>` : '';
+
+      const header = `
+        <div class="flex items-center justify-between gap-6 border-b pb-4" style="border-color:${data.accent}33">
+          <div class="flex items-center gap-4">
+            ${photoEl ? `<div class="shrink-0">${photoEl}</div>` : ''}
+            <div>
+              <div class="name text-2xl font-bold">${escapeHtml(data.name || '')}</div>
+              <div class="text-zinc-600">${escapeHtml(data.title || '')}</div>
+            </div>
+          </div>
+          <div class="text-xs text-right leading-5">
+            <div>${escapeHtml(data.email || '')}</div>
+            <div>${escapeHtml(data.phone || '')}</div>
+            <div>${escapeHtml(data.location || '')}</div>
+            <div>${escapeHtml(data.website || '')}</div>
+          </div>
+        </div>`;
+
+      const summary = data.show.summary && data.summary?.trim() ? `
+        <section class="mt-4">
+          ${sectionTitle('Summary', data.accent)}
+          <p class="text-sm leading-relaxed text-zinc-700 mt-1">${escapeHtml(data.summary)}</p>
+        </section>` : '';
+
+      const skills = data.show.skills && data.skills?.trim() ? `
+        <section class="mt-4">
+          ${sectionTitle('Skills', data.accent)}
+          <div class="mt-1 flex flex-wrap gap-2 text-xs">
+            ${data.skills.split(',').map(s=>`<span class="px-2 py-1 rounded-full border" style="border-color:${data.accent}44">${escapeHtml(s.trim())}</span>`).join('')}
+          </div>
+        </section>` : '';
+
+      const experience = data.show.experience && Array.isArray(data.experience)&&data.experience.length?`
+        <section class="mt-4">
+          ${sectionTitle('Experience', data.accent)}
+          <div class="mt-1 flex flex-col gap-3">
+            ${data.experience.map(e=>`
+              <div>
+                <div class="flex items-center justify-between text-sm">
+                  <div class="font-medium">${escapeHtml(e.role||'')} · <span class="text-zinc-600">${escapeHtml(e.company||'')}</span></div>
+                  <div class="text-zinc-600">${escapeHtml(e.start||'')} – ${escapeHtml(e.end||'')}</div>
+                </div>
+                ${e.desc?.trim()?`<ul class="text-sm text-zinc-700 list-disc ml-5 mt-1">${bulletify(e.desc)}</ul>`:''}
+              </div>`).join('')}
+          </div>
+        </section>`:'';
+
+      const education = data.show.education && Array.isArray(data.education)&&data.education.length?`
+        <section class="mt-4">
+          ${sectionTitle('Education', data.accent)}
+          <div class="mt-1 flex flex-col gap-2">
+            ${data.education.map(ed=>`
+              <div class="text-sm">
+                <span class="font-medium">${escapeHtml(ed.school||'')}</span> — ${escapeHtml(ed.degree||'')}
+                ${(ed.year||ed.location)?`<span class="text-zinc-600"> · ${escapeHtml(ed.year||'')}${ed.location?' · '+escapeHtml(ed.location):''}</span>`:''}
+              </div>`).join('')}
+          </div>
+        </section>`:'';
+
+      const projects = data.show.projects && Array.isArray(data.projects)&&data.projects.length?`
+        <section class="mt-4">
+          ${sectionTitle('Projects', data.accent)}
+          <div class="mt-1 flex flex-col gap-2">
+            ${data.projects.map(p=>`
+              <div class="text-sm">
+                <span class="font-medium">${escapeHtml(p.name||'')}</span>
+                ${p.link?` — <a href="${p.link.startsWith('http')?p.link:'https://'+p.link}" class="underline" target="_blank" rel="noreferrer noopener">${escapeHtml(p.link)}</a>`:''}
+                ${p.desc?.trim()?`<div class="text-zinc-700">${escapeHtml(p.desc)}</div>`:''}
+              </div>`).join('')}
+          </div>
+        </section>`:'';
+
+      // Templates
+      if (data.template === 'bold') {
+        return `
+          <div class="grid grid-cols-3 gap-6 tpl-bold">
+            <aside class="col-span-1 pr-4 border-r" style="border-color:${data.accent}33">
+              ${data.profilePhoto ? `<div class="mb-3">${photoEl}</div>` : ''}
+              <div class="name text-xl font-extrabold" style="color:${data.accent}">${escapeHtml(data.name || '')}</div>
+              <div class="text-zinc-700 mb-3">${escapeHtml(data.title || '')}</div>
+              ${skills}
+              <section class="mt-4">
+                ${sectionTitle('Contact', data.accent)}
+                <div class="text-sm text-zinc-700 mt-1">
+                  <div>${escapeHtml(data.email || '')}</div>
+                  <div>${escapeHtml(data.phone || '')}</div>
+                  <div>${escapeHtml(data.location || '')}</div>
+                  <div>${escapeHtml(data.website || '')}</div>
+                </div>
+              </section>
+            </aside>
+            <main class="col-span-2">
+              ${summary}
+              ${experience}
+              ${education}
+              ${projects}
+            </main>
+          </div>`;
+      } else if (data.template === 'modern') {
+        return `
+          <div class="tpl-modern">
+            ${header}
+            <div class="grid grid-cols-3 gap-6 mt-4">
+              <div class="col-span-2">
+                ${summary}
+                ${experience}
+              </div>
+              <div class="col-span-1">
+                ${skills}
+                ${education}
+                ${projects}
+              </div>
+            </div>
+          </div>`;
+      }
+      // minimal
+      return `
+        <div class="tpl-minimal">
+          ${header}
+          ${summary}
+          ${skills}
+          ${experience}
+          ${education}
+          ${projects}
+        </div>`;
+    }
+
+    function render() {
+      localStorage.setItem('cv-data', JSON.stringify(data));
+      els.cv.innerHTML = renderContent();
+      els.cv.className = {
+        minimal: 'tpl-minimal',
+        modern: 'tpl-modern',
+        bold: 'tpl-bold'
+      }[data.template] || 'tpl-minimal';
+    }
+
+    // ---- Bind inputs for live updates ----
+    els.template.addEventListener('change', () => { data.template = els.template.value; render(); });
+    els.accent.addEventListener('input', () => { data.accent = els.accent.value; render(); });
+    els.name.addEventListener('input', () => { data.name = els.name.value; render(); });
+    els.title.addEventListener('input', () => { data.title = els.title.value; render(); });
+    els.summary.addEventListener('input', () => { data.summary = els.summary.value; render(); });
+    els.email.addEventListener('input', () => { data.email = els.email.value; render(); });
+    els.phone.addEventListener('input', () => { data.phone = els.phone.value; render(); });
+    els.location.addEventListener('input', () => { data.location = els.location.value; render(); });
+    els.website.addEventListener('input', () => { data.website = els.website.value; render(); });
+    els.skills.addEventListener('input', () => { data.skills = els.skills.value; render(); });
+
+    // Visibility toggles
+    els.visSummary.addEventListener('change', () => { data.show.summary = els.visSummary.checked; render(); });
+    els.visSkills.addEventListener('change', () => { data.show.skills = els.visSkills.checked; render(); });
+    els.visExperience.addEventListener('change', () => { data.show.experience = els.visExperience.checked; render(); });
+    els.visEducation.addEventListener('change', () => { data.show.education = els.visEducation.checked; render(); });
+    els.visProjects.addEventListener('change', () => { data.show.projects = els.visProjects.checked; render(); });
+
+    // Photo upload + controls
+    function readFileAsDataURL(file) { return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file);}); }
+    async function handlePhotoUpload(file){ if(!file)return; const dataUrl=await readFileAsDataURL(file); const img=new Image(); img.src=dataUrl; await img.decode(); const maxDim=512; const canvas=document.createElement('canvas'); const ratio=Math.min(maxDim/img.width,maxDim/img.height,1); canvas.width=Math.round(img.width*ratio); canvas.height=Math.round(img.height*ratio); canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height); data.profilePhoto=canvas.toDataURL('image/jpeg',0.9); render(); }
+    els.photoInput?.addEventListener('change',e=>handlePhotoUpload(e.target.files[0]));
+    els.btnRemovePhoto?.addEventListener('click',()=>{data.profilePhoto=null; render();});
+    els.photoSize?.addEventListener('input',()=>{data.photoSize=+els.photoSize.value; render();});
+    els.photoShape?.addEventListener('change',()=>{data.photoShape=els.photoShape.value; render();});
+    els.photoBorder?.addEventListener('change',()=>{data.photoBorder=els.photoBorder.checked; render();});
+
+    // Ads Consent / Loading
+    function showConsentIfNeeded(){
+      const bar=document.getElementById('consentBar');
+      if(!data.adsConsent) bar.classList.remove('hidden');
+      else { bar.classList.add('hidden'); if(data.adsConsent==='accepted') loadAds(); }
+    }
+    function loadAds(){
+      try{
+        if(window.__adsLoaded) return; window.__adsLoaded = true;
+        const s=document.createElement('script'); s.async=true;
+        s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX';
+        s.crossOrigin='anonymous'; document.head.appendChild(s);
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      }catch(_){} // ignore CSP/adblock errors in sandbox
+    }
+    document.getElementById('btnAcceptAds')?.addEventListener('click',()=>{ data.adsConsent='accepted'; localStorage.setItem('cv-data', JSON.stringify(data)); document.getElementById('consentBar').classList.add('hidden'); loadAds(); });
+    document.getElementById('btnDeclineAds')?.addEventListener('click',()=>{ data.adsConsent='declined'; localStorage.setItem('cv-data', JSON.stringify(data)); document.getElementById('consentBar').classList.add('hidden'); });
+
+    // Buttons: Save / Load / New / Demo / Export
+    document.getElementById('btnSave').addEventListener('click',()=>{ localStorage.setItem('cv-data', JSON.stringify(data)); alert('Saved locally. Use Load to restore.'); });
+    document.getElementById('btnLoad').addEventListener('click',()=>{
+      const raw = prompt('Paste data JSON (leave empty to load last autosave):');
+      if(raw && raw.trim()){
+        try{ const obj = JSON.parse(raw); data = mergeData(defaultData, obj); }
+        catch(e){ return alert('Invalid JSON'); }
+      } else {
+        const saved = localStorage.getItem('cv-data');
+        if(!saved) return alert('No saved data found.');
+        try{ data = mergeData(defaultData, JSON.parse(saved)); }
+        catch(e){ return alert('Saved data was corrupted.'); }
+      }
+      renderEditor(); render();
+    });
+    document.getElementById('btnNew').addEventListener('click',()=>{
+      if(!confirm('Start a new blank CV? Current editor will be cleared.')) return;
+      data = { template:'minimal', accent:'#2563EB', name:'', title:'', summary:'', email:'', phone:'', location:'', website:'', skills:'', experience:[], education:[], projects:[], profilePhoto:null, photoSize:96, photoShape:'rounded-xl', photoBorder:false, adsConsent:data.adsConsent, show:{ summary:true, skills:true, experience:true, education:true, projects:true } };
+      renderEditor(); render();
+    });
+    document.getElementById('btnDemo').addEventListener('click',()=>{
+      if(!confirm('Load example content? This will overwrite current editor.')) return;
+      data = JSON.parse(JSON.stringify(demoData));
+      renderEditor(); render();
+    });
+    document.getElementById('btnExport').addEventListener('click', async ()=>{
+      const node = document.getElementById('previewWrap');
+      const canvas = await html2canvas(node, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf; const pdf = new jsPDF('p','mm','a4');
+      const pageWidth = 210; const imgProps = pdf.getImageProperties(imgData);
+      const imgWidth = pageWidth; const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`${(data.name||'cv').toLowerCase().replace(/\s+/g,'-')}.pdf`);
+    });
+
+    // Init
+    renderEditor();
+    render();
+  </script>
+</body>
+</html>
